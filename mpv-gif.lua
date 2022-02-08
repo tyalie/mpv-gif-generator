@@ -68,6 +68,26 @@ function get_gifname()
     return gifname
 end
 
+function log_command_result(res, val, err)
+    if not (res and (val == nil or val["status"] == 0)) then
+        if val["stderr"] then
+            if mp.get_property("options/terminal") == "no" then
+                file = io.open(string.format("/tmp/mpv-gif-ffmpeg.%s.log", os.time()), "w")
+                file:write(string.format("ffmpeg error %d:\n%s", val["status"], val["stderr"]))
+                file:close()
+            else
+                msg.error(val["stderr"])
+            end
+        end
+
+        msg.error("GIF generation was unsuccessful")
+        mp.osd_message("error creating GIF")
+        return -1
+    end
+
+    return 0
+end
+
 
 function make_gif_internal(burn_subtitles)
     local start_time_l = start_time
@@ -129,19 +149,15 @@ function make_gif_internal(burn_subtitles)
     }
 
     -- first, create the palette
-    mp.command_native_async({ name="subprocess", args=args_palette, capture_stdout=true }, 
+    mp.command_native_async({ name="subprocess", args=args_palette, capture_stdout=true, capture_stderr=true }, 
         function(res, val, err)
-            if not (res and (val == nil or val["status"] == 0)) then
-                msg.error("Palette generation was unsuccessful")
-                mp.osd_message("error creating GIF")
+            if log_command_result(res, val, err) ~= 0 then
                 return
             end
 
-            mp.command_native_async({ name="subprocess", args=args_gif, capture_stdout=true },
+            mp.command_native_async({ name="subprocess", args=args_gif, capture_stdout=true, capture_stderr=true },
                 function(res, val, err)
-                    if not (res and (val == nil or val["status"] == 0)) then
-                        msg.error("GIF generation was unsuccessful")
-                        mp.osd_message("error creating GIF")
+                    if log_command_result(res, val, err) ~= 0 then
                         return
                     end
 
