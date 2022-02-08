@@ -85,6 +85,34 @@ function log_command_result(res, val, err)
     return 0
 end
 
+function get_tracks()
+    -- retrieve information about currently selected tracks
+    local tracks, err = utils.parse_json(mp.get_property("track-list"))
+    if tracks == nil then
+        msg.warning("Couldn't parse track-list")
+        return
+    end
+
+    local video = nil
+    local has_sub = false
+    local sub = nil
+
+    for _, track in ipairs(tracks) do
+        has_sub = has_sub or track["type"] == "sub"
+
+        if track["selected"] == true then
+            if track["type"] == "video" then
+                video = {id=track["id"]}
+            elseif track["type"] == "sub" then
+                sub = {id=track["id"], codec=track["codec"]}
+            end
+
+        end
+    end
+
+    return video, sub, has_sub
+end
+
 
 function make_gif_internal(burn_subtitles)
     local start_time_l = start_time
@@ -94,20 +122,31 @@ function make_gif_internal(burn_subtitles)
         return
     end
 
+    local sel_video, sel_sub, has_sub = get_tracks()
+
+    if sel_video == nil then
+        mp.osd_message("GIF abort: no video")
+        msg.info("No video selected")
+        return
+    end
+
+
     msg.info("Creating GIF" .. (burn_subtitles and " (with subtitles)" or ""))
     mp.osd_message("Creating GIF" .. (burn_subtitles and " (with subtitles)" or ""))
 
     local pathname = get_path()
-    local trim_filters_pal = filters
-    local trim_filters_gif = filters
+    local trim_filters_pal = string.format("[0:v:%d] ", sel_video["id"] - 1) .. filters
+    local trim_filters_gif = trim_filters_pal
 
     -- add subtitles only for final rendering as it slows down significantly
-    if burn_subtitles then
+    if burn_subtitles and has_sub then
         -- TODO: implement usage of different subtitle formats (i.e. bitmap ones, …)
-        sid = mp.get_property("sid")
-        sid = (sid == "no" and 0 or sid - 1)  -- mpv starts count subtitles with one
+        sid = (sel_sub == nil and 0 or sel_sub["id"] - 1)  -- mpv starts counting subtitles with one
         trim_filters_gif = trim_filters_gif .. 
             string.format(",subtitles='%s':si=%d", ffmpeg_esc(pathname), sid)
+    else
+        msg.info("There are no subtitle tracks")
+        mp.osd_message("GIF: ignoring subtitle request")
     end
 
 
@@ -145,6 +184,8 @@ function make_gif_internal(burn_subtitles)
             if log_command_result(res, val, err) ~= 0 then
                 return
             end
+
+            msg.debug("Generated palette")
 
             mp.command_native_async({ 
                 name="subprocess", args=args_gif, capture_stdout=true, capture_stderr=true 
