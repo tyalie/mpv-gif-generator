@@ -12,6 +12,11 @@ Copy the lua script into
 - `~/.config/mpv/scripts/` for you or
 - `/etc/mpv/scripts` to install it for all users
 
+### Debugging
+
+If errors with ffmpeg occure these are either logged to the terminal (when `terminal != no`) otherwise to `/tmp/mpv-gif-ffmpeg.<TIMESTAMP>.log`. The `terminal==no` case occures for example when
+starting mpv through the `*.desktop` entry (i.e. file explorer, …)
+
 ## Usage
 
 | shortcut          | effect                    |
@@ -24,3 +29,4 @@ Copy the lua script into
 **Note:** Rendering of gifs with subtitles is a bit limited as only non-bitmap ones are currently supported and the generation can take quite long when the file is in a network share or similar.
 
 The output is currently written to `/tmp/` in the format `/tmp/<VIDEO NAME>_000.gif`
+
