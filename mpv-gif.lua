@@ -22,6 +22,7 @@ function make_gif()
 end
 
 function get_path()
+    -- TODO: improve detection of file paths (relative, windows, …)
     local file_path = mp.get_property("path", "")
     if not string.sub(file_path,1,1) == "/" then  -- probably relative path
         file_path = mp.get_property("working-directory", "") .. "/" .. file_path
@@ -92,7 +93,7 @@ function make_gif_internal(burn_subtitles)
 
     -- add subtitles only for final rendering as it slows down significantly
     if burn_subtitles then
-        -- TODO: implement usage of different subtitle formats (i.e. bitmap ones, ...)
+        -- TODO: implement usage of different subtitle formats (i.e. bitmap ones, …)
         sid = mp.get_property("sid")
         sid = (sid == "no" and 0 or sid - 1)  -- mpv starts count subtitles with one
         trim_filters_gif = trim_filters_gif .. 
