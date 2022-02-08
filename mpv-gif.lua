@@ -5,9 +5,22 @@
 local msg = require 'mp.msg'
 local utils = require 'mp.utils'
 
+-- options
+require 'mp.options'
+local options = {
+    width = 540,
+    height = -1,
+    outputDirectory = "~/"
+}
+read_options(options, "gifgen")
+
+-- expand given path (i.e. ~/, ~~/, …)
+res, err = mp.command_native({"expand-path", options.outputDirectory})
+options.outputDirectory = res
+
 -- Set this to the filters to pass into ffmpeg's -vf option.
 -- filters="fps=24,scale=320:-1:flags=lanczos"
-filters="fps=15,scale=540:-1:flags=lanczos"
+filters = string.format("fps=15,scale=%d:%d:flags=lanczos", options.width, options.height)
 
 start_time = -1
 end_time = -1
@@ -23,18 +36,16 @@ end
 
 function get_path()
     -- TODO: improve detection of file paths (relative, windows, …)
-    local file_path = mp.get_property("path", "")
-    if not string.sub(file_path,1,1) == "/" then  -- probably relative path
-        file_path = mp.get_property("working-directory", "") .. "/" .. file_path
-    end
-
-    return file_path
+    return utils.join_path(
+        mp.get_property("working-directory", ""),
+        mp.get_property("path")
+    )
 end
 
 function get_gifname()
     -- then, make the gif
     local filename = mp.get_property("filename/no-ext")
-    local file_path = "/tmp/" .. filename
+    local file_path = options.outputDirectory .. "/" .. filename
 
     -- increment filename
     for i=0,999 do
