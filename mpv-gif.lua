@@ -8,8 +8,10 @@ local utils = require 'mp.utils'
 -- options
 require 'mp.options'
 local options = {
+    fps = 15,
     width = 540,
     height = -1,
+    extension = "mp4",
     outputDirectory = "~/"
 }
 read_options(options, "gifgen")
@@ -20,7 +22,11 @@ options.outputDirectory = res
 
 -- Set this to the filters to pass into ffmpeg's -vf option.
 -- filters="fps=24,scale=320:-1:flags=lanczos"
-filters = string.format("fps=15,scale=%d:%d:flags=lanczos", options.width, options.height)
+filters = options.fps < 0 and "" or string.format("fps=%d,", options.fps)
+filters = filters .. string.format(
+    "scale=%d:%d:flags=lanczos", 
+    options.fps, options.width, options.height
+)
 
 start_time = -1
 end_time = -1
@@ -49,7 +55,7 @@ function get_gifname()
 
     -- increment filename
     for i=0,999 do
-        local fn = string.format('%s_%03d.gif',file_path,i)
+        local fn = string.format('%s_%03d.%s',file_path,i, options.extension)
         if not file_exists(fn) then
             gifname = fn
             break
@@ -135,8 +141,6 @@ function make_gif_internal(burn_subtitles)
     mp.osd_message("Creating GIF" .. (burn_subtitles and " (with subtitles)" or ""))
 
     local pathname = get_path()
-    local trim_filters_pal = string.format("[0:v:%d] ", sel_video["id"] - 1) .. filters
-    local trim_filters_gif = trim_filters_pal
 
     -- add subtitles only for final rendering as it slows down significantly
     if burn_subtitles and has_sub then
@@ -144,7 +148,7 @@ function make_gif_internal(burn_subtitles)
         sid = (sel_sub == nil and 0 or sel_sub["id"] - 1)  -- mpv starts counting subtitles with one
         trim_filters_gif = trim_filters_gif .. 
             string.format(",subtitles='%s':si=%d", ffmpeg_esc(pathname), sid)
-    else
+    elseif burn_subtitles then
         msg.info("There are no subtitle tracks")
         mp.osd_message("GIF: ignoring subtitle request")
     end
@@ -158,22 +162,27 @@ function make_gif_internal(burn_subtitles)
         return
     end
 
+    -- set arguments
+    v_track = string.format("[0:v:%d] ", sel_video["id"] - 1)
+    local filter_pal = v_track .. filters .. ",palettegen=stats_mode=diff"
     local args_palette = {
         "ffmpeg", "-v", "warning", 
         "-ss", tostring(position), "-t", tostring(duration),
         "-i", pathname, 
-        "-vf", trim_filters_pal .. ",palettegen",
+        "-vf", filter_pal,
         "-y", palette
     }
 
-
+    local filter_gif = v_track .. filters .. " [x]; "
+    filter_gif = filter_gif .. "[x][1:v] paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
     local args_gif = {
         "ffmpeg", "-v", "warning",
         "-ss", tostring(position), "-t", tostring(duration),  -- define which part to use
         "-copyts",  -- otherwise ss can't be reused
         "-i", pathname, "-i", palette,  -- open files
+        "-an",  -- remove audio
         "-ss", tostring(position),  -- required for burning subtitles
-        "-lavfi", trim_filters_gif .. " [x]; [x][1:v] paletteuse",
+        "-lavfi", filter_gif,
         "-y", gifname  -- output
     }
 

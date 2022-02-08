@@ -34,7 +34,9 @@ The output is currently written to `/tmp/` in the format `/tmp/<VIDEO NAME>_000.
 The script can be configured either by having a `script-opts/gifgen.conf` or using e.g. `--script-opts=gifgen-width=-1`. An example configuration file could be:
 
 ```conf
+fps=15  # fps for output (can be -1 for source fps)
 width=480
 height=-1  # automatically determine height
+extension=gif  # file extension (e.g. mp4 for telegram gifs)
 outputDirectory=~/  # gif output directory
 ```
