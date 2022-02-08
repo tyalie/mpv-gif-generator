@@ -9,8 +9,8 @@ local utils = require 'mp.utils'
 -- filters="fps=24,scale=320:-1:flags=lanczos"
 filters="fps=15,scale=540:-1:flags=lanczos"
 
-start_time = 39 -- -1
-end_time = 42  -- -1
+start_time = -1
+end_time = -1
 palette="/tmp/palette.png"
 
 function make_gif_with_subtitles()
