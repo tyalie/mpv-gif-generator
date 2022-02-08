@@ -31,20 +31,6 @@ function get_path()
     return file_path
 end
 
-function join(sep, arr, count)
-    local r = ""
-    if count == nil then
-        count = #arr
-    end
-    for i = 1, count do
-        if i > 1 then
-            r = r .. sep
-        end
-        r = r .. utils.to_string(arr[i])
-    end
-    return r
-end
-
 function get_gifname()
     -- then, make the gif
     local filename = mp.get_property("filename/no-ext")
@@ -100,13 +86,6 @@ function make_gif_internal(burn_subtitles)
     msg.info("Creating GIF" .. (burn_subtitles and " (with subtitles)" or ""))
     mp.osd_message("Creating GIF" .. (burn_subtitles and " (with subtitles)" or ""))
 
-    function ffmpeg_esc(s)
-        s = string.gsub(s, ":", "\\:")
-        s = string.gsub(s, "\\", "\\\\")
-        s = string.gsub(s, "'", "\\'")
-        return s
-    end
-
     local pathname = get_path()
     local trim_filters_pal = filters
     local trim_filters_gif = filters
@@ -149,14 +128,16 @@ function make_gif_internal(burn_subtitles)
     }
 
     -- first, create the palette
-    mp.command_native_async({ name="subprocess", args=args_palette, capture_stdout=true, capture_stderr=true }, 
-        function(res, val, err)
+    mp.command_native_async({ 
+        name="subprocess", args=args_palette, capture_stdout=true, capture_stderr=true 
+    }, function(res, val, err)
             if log_command_result(res, val, err) ~= 0 then
                 return
             end
 
-            mp.command_native_async({ name="subprocess", args=args_gif, capture_stdout=true, capture_stderr=true },
-                function(res, val, err)
+            mp.command_native_async({ 
+                name="subprocess", args=args_gif, capture_stdout=true, capture_stderr=true 
+            }, function(res, val, err)
                     if log_command_result(res, val, err) ~= 0 then
                         return
                     end
@@ -185,6 +166,14 @@ end
 function get_containing_path(str,sep)
     sep=sep or package.config:sub(1,1)
     return str:match("(.*"..sep..")")
+end
+
+function ffmpeg_esc(s)
+    -- escape string to be used in ffmpeg arguments (i.e. filenames in filter)
+    s = string.gsub(s, "\\", "\\\\")
+    s = string.gsub(s, ":", "\\:")
+    s = string.gsub(s, "'", "\\'")
+    return s
 end
 
 mp.add_key_binding("g", "set_gif_start", set_gif_start)
