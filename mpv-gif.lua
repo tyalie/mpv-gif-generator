@@ -142,12 +142,12 @@ function make_gif_internal(burn_subtitles)
 
     local pathname = get_path()
 
+    subtitle_filter = ""
     -- add subtitles only for final rendering as it slows down significantly
     if burn_subtitles and has_sub then
         -- TODO: implement usage of different subtitle formats (i.e. bitmap ones, …)
         sid = (sel_sub == nil and 0 or sel_sub["id"] - 1)  -- mpv starts counting subtitles with one
-        trim_filters_gif = trim_filters_gif .. 
-            string.format(",subtitles='%s':si=%d", ffmpeg_esc(pathname), sid)
+        subtitle_filter = string.format(",subtitles='%s':si=%d", ffmpeg_esc(pathname), sid)
     elseif burn_subtitles then
         msg.info("There are no subtitle tracks")
         mp.osd_message("GIF: ignoring subtitle request")
@@ -173,7 +173,7 @@ function make_gif_internal(burn_subtitles)
         "-y", palette
     }
 
-    local filter_gif = v_track .. filters .. " [x]; "
+    local filter_gif = v_track .. filters .. subtitle_filter .. " [x]; "
     filter_gif = filter_gif .. "[x][1:v] paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle"
     local args_gif = {
         "ffmpeg", "-v", "warning",
