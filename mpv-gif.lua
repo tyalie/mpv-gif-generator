@@ -25,7 +25,7 @@ options.outputDirectory = res
 filters = options.fps < 0 and "" or string.format("fps=%d,", options.fps)
 filters = filters .. string.format(
     "scale=%d:%d:flags=lanczos", 
-    options.fps, options.width, options.height
+    options.width, options.height
 )
 
 start_time = -1
